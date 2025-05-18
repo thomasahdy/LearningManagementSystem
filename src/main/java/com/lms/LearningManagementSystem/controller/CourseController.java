@@ -45,11 +45,11 @@ public class CourseController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
+    @PostMapping("/{id}")
     @PreAuthorize("hasRole('INSTRUCTOR') and @courseSecurityService.isInstructorOfCourse(authentication.principal.username, #id) ")
-    public ResponseEntity<Course> createCourse(@RequestBody Course course, User instructor) {
+    public ResponseEntity<Course> createCourse(@RequestBody Course course, @PathVariable Long id) {
         //pass the instructor's id to the course
-        instructor.setUsername(instructor.getUsername());
+        User instructor = userService.findById(id);
         course.setInstructor(instructor);
 
         Course createdCourse = courseService.createCourse(course);

@@ -3,7 +3,6 @@ package com.lms.LearningManagementSystem.controller;
 
 import com.lms.LearningManagementSystem.model.Announcement;
 import com.lms.LearningManagementSystem.service.AnnouncementService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

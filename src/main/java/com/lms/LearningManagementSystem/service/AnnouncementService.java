@@ -6,7 +6,6 @@ import com.lms.LearningManagementSystem.model.User;
 import com.lms.LearningManagementSystem.repository.AnnouncementRepository;
 import com.lms.LearningManagementSystem.repository.ReadReceiptRepository;
 import com.lms.LearningManagementSystem.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

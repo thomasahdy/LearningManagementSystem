@@ -2,18 +2,22 @@ package com.lms.LearningManagementSystem.service;
 
 import com.lms.LearningManagementSystem.model.Quiz;
 import com.lms.LearningManagementSystem.repository.QuizRepository;
+import org.apache.commons.math3.exception.NullArgumentException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 @Service
 public class QuizService {
 
+    private final QuizRepository quizRepository;
+
     @Autowired
-    private QuizRepository quizRepository;
+    public QuizService(QuizRepository quizRepository) {
+        this.quizRepository = quizRepository;
+    }
 
     public Quiz saveQuiz(Quiz quiz) {
         return quizRepository.save(quiz);
@@ -37,7 +41,7 @@ public class QuizService {
             // Save the updated quiz back to the database
             return quizRepository.save(existingQuiz);
         }
-        throw new RuntimeException("Quiz not found");
+        throw new NullArgumentException();
     }
 
 

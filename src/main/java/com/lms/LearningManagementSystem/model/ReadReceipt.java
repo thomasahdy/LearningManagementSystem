@@ -17,14 +17,12 @@ public class ReadReceipt {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
-
     @ManyToOne
-    @JoinColumn(name = "userId", referencedColumnName = "id")
-    private User user; // maps  relationship to the User entity
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user; // maps relationship to the User entity
 
-    @Column
-    private Long userId; //  foreign key column
+    @Column(name = "user_id", insertable = false, updatable = false)
+    private Long userId; // foreign key column, now marked as non-insertable and non-updatable
 
     @ManyToOne
     @JoinColumn(name = "announcement_id")

@@ -17,7 +17,8 @@ public class Quiz {
     private String title;
     @NotBlank
     private String description;
-    private Long TotalMarks;
+
+    private Long totalMarks;
     @ManyToMany
     @JoinTable(
             name = "quiz_questions",

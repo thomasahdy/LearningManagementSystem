@@ -49,5 +49,5 @@ public class Course {
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("course") // Fix for bidirectional relationship
-    private List<Question> questions = new ArrayList<>(); // Renamed to match proper English pluralization
+    private List<Question> questions = new ArrayList<>(); 
 }

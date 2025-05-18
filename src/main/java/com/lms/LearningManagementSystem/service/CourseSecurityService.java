@@ -6,7 +6,6 @@ import com.lms.LearningManagementSystem.model.User;
 import com.lms.LearningManagementSystem.repository.CourseRepository;
 import com.lms.LearningManagementSystem.repository.EnrollmentRepository;
 import com.lms.LearningManagementSystem.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,30 +13,33 @@ import java.util.List;
 @Service
 public class CourseSecurityService {
 
-    @Autowired
-    private CourseRepository courseRepository;
+    private final CourseRepository courseRepository;
+    private final UserRepository userRepository;
+    private final EnrollmentRepository enrollmentRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private EnrollmentRepository enrollmentRepository;
+    public CourseSecurityService(CourseRepository courseRepository,
+                                 UserRepository userRepository,
+                                 EnrollmentRepository enrollmentRepository) {
+        this.courseRepository = courseRepository;
+        this.userRepository = userRepository;
+        this.enrollmentRepository = enrollmentRepository;
+    }
 
     public boolean isInstructorOfCourse(String username, Long courseId) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        return course.getInstructor() != null && 
-               course.getInstructor().getId() == user.getId();
+        return course.getInstructor() != null &&
+                course.getInstructor().getId().equals(user.getId());
     }
 
     public boolean isEnrolledInCourse(String username, Long courseId) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        
+
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
@@ -48,13 +50,11 @@ public class CourseSecurityService {
         User instructor = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Instructor not found"));
 
-        // Get all enrollments for the student
         List<Enrollment> studentEnrollments = enrollmentRepository.findByStudentId(studentId);
 
-        // Check if the instructor teaches any of the courses the student is enrolled in
         return studentEnrollments.stream()
                 .map(Enrollment::getCourse)
                 .anyMatch(course -> course.getInstructor() != null &&
-                        course.getInstructor().getId() == instructor.getId());
+                        course.getInstructor().getId().equals(instructor.getId()));
     }
 }

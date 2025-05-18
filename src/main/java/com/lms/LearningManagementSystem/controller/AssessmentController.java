@@ -1,14 +1,12 @@
 package com.lms.LearningManagementSystem.controller;
 
 import com.lms.LearningManagementSystem.model.Assignment;
-import com.lms.LearningManagementSystem.service.AssignmentService;
 import com.lms.LearningManagementSystem.model.Quiz;
-import com.lms.LearningManagementSystem.service.QuizService;
 import com.lms.LearningManagementSystem.model.Question;
+import com.lms.LearningManagementSystem.service.AssignmentService;
+import com.lms.LearningManagementSystem.service.QuizService;
 import com.lms.LearningManagementSystem.service.QuestionService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,12 +15,18 @@ import java.util.List;
 @RequestMapping("/api/Assessment")
 public class AssessmentController {
 
-    @Autowired
-    private QuestionService questionService;
-    @Autowired
-    private AssignmentService assignmentService;
-    @Autowired
-    private QuizService quizService;
+    private final QuestionService questionService;
+    private final AssignmentService assignmentService;
+    private final QuizService quizService;
+
+    public AssessmentController(QuestionService questionService,
+                                AssignmentService assignmentService,
+                                QuizService quizService) {
+        this.questionService = questionService;
+        this.assignmentService = assignmentService;
+        this.quizService = quizService;
+    }
+
     @PostMapping("/questions")
     public Question addQuestion(@RequestBody Question question) {
         return questionService.saveQuestion(question);
@@ -68,6 +72,4 @@ public class AssessmentController {
         Quiz quiz = quizService.updateQuiz(id, updatedQuiz);
         return ResponseEntity.ok(quiz);
     }
-
-
 }

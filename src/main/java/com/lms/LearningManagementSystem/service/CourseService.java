@@ -1,49 +1,60 @@
 package com.lms.LearningManagementSystem.service;
 
+import com.lms.LearningManagementSystem.exception.CourseNotFoundException;
+import com.lms.LearningManagementSystem.exception.FileStorageException;
 import com.lms.LearningManagementSystem.model.Course;
 import com.lms.LearningManagementSystem.model.Lesson;
 import com.lms.LearningManagementSystem.model.User;
-import com.lms.LearningManagementSystem.service.UserService;
 import com.lms.LearningManagementSystem.repository.CourseRepository;
 import com.lms.LearningManagementSystem.repository.LessonRepository;
 import com.lms.LearningManagementSystem.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.lms.LearningManagementSystem.repository.AssignmentRepository;
+import com.lms.LearningManagementSystem.model.Assignment;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 public class CourseService {
 
-    @Autowired
-    private CourseRepository courseRepository;
+    private final CourseRepository courseRepository;
+    private final LessonRepository lessonRepository;
+    private final UserRepository userRepository;
+    private final UserService userService;
+    private final NotificationService notificationService;
+    private final AssignmentRepository assignmentRepository;
 
-    @Autowired
-    private LessonRepository lessonRepository;
+    private static final String COURSE_NOT_FOUND = "Course not found";
+    private static final Random RANDOM = new Random();
 
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private  NotificationService notificationService;
-    @Value("${media.storage.path}") // Define a property in application.properties
+    @Value("${media.storage.path}")
     private String mediaStoragePath;
+
+    public CourseService(
+            CourseRepository courseRepository,
+            LessonRepository lessonRepository,
+            UserRepository userRepository,
+            NotificationService notificationService,
+            AssignmentRepository assignmentRepository,
+            UserService userService) {
+            this.assignmentRepository = assignmentRepository;
+        this.courseRepository = courseRepository;
+        this.lessonRepository = lessonRepository;
+        this.userRepository = userRepository;
+        this.userService = userService;
+        this.notificationService = notificationService;
+    }
 
     @PreAuthorize("hasRole('INSTRUCTOR') and @courseSecurityService.isInstructorOfCourse(authentication.principal.username, #courseId) or hasRole('ADMIN')")
     public Course createCourse(Course course) {
-
-        // Get the instructor from the database
         User instructor = userRepository.findByUsername(course.getInstructor().getUsername())
                 .orElseThrow(() -> new IllegalArgumentException("Instructor not found"));
         course.setInstructor(instructor);
@@ -53,29 +64,29 @@ public class CourseService {
     @PreAuthorize("hasRole('INSTRUCTOR') and @courseSecurityService.isInstructorOfCourse(authentication.principal.username, #courseId) or hasRole('ADMIN')")
     public Course updateCourse(Long courseId, Course course) {
         Course existingCourse = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
 
-        // Preserve the original instructor
         course.setId(courseId);
         course.setInstructor(existingCourse.getInstructor());
         course.setEnrolledStudents(existingCourse.getEnrolledStudents());
+
         String subject = "Course Update";
         String message = "Course has been updated";
         for (String studentName : course.getEnrolledStudents()) {
             notificationService.createNotification(userService.findByUsername(studentName), subject, message);
         }
+
         return courseRepository.save(course);
     }
 
     @PreAuthorize("hasRole('INSTRUCTOR') and @courseSecurityService.isInstructorOfCourse(authentication.principal.username, #courseId) or hasRole('ADMIN')")
     public void deleteCourse(Long courseId) {
         if (!courseRepository.existsById(courseId)) {
-            throw new IllegalArgumentException("Course not found");
+            throw new CourseNotFoundException(COURSE_NOT_FOUND);
         }
         courseRepository.deleteById(courseId);
     }
 
-    // Accessible by all authenticated users
     @PreAuthorize("isAuthenticated()")
     public List<Course> getAllCourses() {
         return courseRepository.findAll();
@@ -99,7 +110,7 @@ public class CourseService {
     @PreAuthorize("hasRole('STUDENT')")
     public void enrollStudent(Long courseId, String username) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
 
         if (course.getEnrolledStudents().contains(username)) {
             throw new IllegalArgumentException("Student is already enrolled in this course");
@@ -112,7 +123,7 @@ public class CourseService {
     @PreAuthorize("hasRole('STUDENT')")
     public void unenrollStudent(Long courseId, String username) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
 
         if (!course.getEnrolledStudents().contains(username)) {
             throw new IllegalArgumentException("Student is not enrolled in this course");
@@ -124,7 +135,7 @@ public class CourseService {
 
     public Course uploadMediaFiles(Long courseId, List<MultipartFile> files) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
 
         List<String> filePaths = new ArrayList<>();
         for (MultipartFile file : files) {
@@ -136,30 +147,31 @@ public class CourseService {
         return courseRepository.save(course);
     }
 
+
     private String saveFile(MultipartFile file) {
         try {
             String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
             Path filePath = Paths.get(mediaStoragePath, fileName);
-            Files.createDirectories(filePath.getParent()); // Ensure directory exists
+            Files.createDirectories(filePath.getParent());
             Files.write(filePath, file.getBytes());
             return filePath.toString();
         } catch (IOException e) {
-            throw new RuntimeException("Failed to store file " + file.getOriginalFilename(), e);
+            throw new FileStorageException("Failed to store file " + file.getOriginalFilename(), e);
         }
     }
+
 
     @PreAuthorize("hasRole('INSTRUCTOR') and @courseSecurityService.isInstructorOfCourse(authentication.principal.username, #courseId)")
     public Lesson generateOtp(Long courseId, Long lessonId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
 
         Lesson lesson = course.getLessons().stream()
                 .filter(l -> l.getId().equals(lessonId))
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Lesson not found"));
 
-        // Generate a random 6-digit OTP
-        String otp = String.format("%06d", (int)(Math.random() * 1000000));
+        String otp = String.format("%06d", RANDOM.nextInt(1_000_000));
         lesson.setOtp(otp);
 
         courseRepository.save(course);
@@ -169,7 +181,7 @@ public class CourseService {
     @PreAuthorize("hasRole('STUDENT') and @courseSecurityService.isEnrolledInCourse(authentication.principal.username, #courseId)")
     public boolean validateOtp(Long courseId, Long lessonId, String otp) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
 
         Lesson lesson = course.getLessons().stream()
                 .filter(l -> l.getId().equals(lessonId))
@@ -182,33 +194,42 @@ public class CourseService {
     @PreAuthorize("hasAnyRole('ADMIN', 'INSTRUCTOR') and @courseSecurityService.isInstructorOfCourse(authentication.principal, #courseId)")
     public List<String> getEnrolledStudents(Long courseId) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
-        return course.getEnrolledStudents().stream().collect(Collectors.toList());
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
+        return new ArrayList<>(course.getEnrolledStudents());
     }
-
-//    public Course addStudentsToCourse(Long courseId, List<String> studentUsernames) {
-//        Course course = courseRepository.findById(courseId)
-//                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
-//
-//        // Add students to the course
-//        course.getEnrolledStudents().addAll(studentUsernames);
-//
-//        // Save the updated course
-//        return courseRepository.save(course);
-//    }
 
     public Course addLessonsToCourse(Long courseId, List<Lesson> lessons) {
         Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new IllegalArgumentException("Course not found"));
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
 
-        // Set the course reference for each lesson and save the lessons
         lessons.forEach(lesson -> {
             lesson.setCourse(course);
             lessonRepository.save(lesson);
         });
 
-        // Refresh the course with the updated lessons
         course.getLessons().addAll(lessons);
         return courseRepository.save(course);
     }
+        
+        @PreAuthorize("hasRole('INSTRUCTOR')")
+        public Assignment createAssignment(Long courseId, Assignment assignment) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new CourseNotFoundException(COURSE_NOT_FOUND));
+        assignment.setCourse(course);
+        return assignmentRepository.save(assignment);
+    }
+
+    @PreAuthorize("hasRole('INSTRUCTOR')")
+    public List<Assignment> getAssignments(Long courseId) {
+        return assignmentRepository.findByCourseId(courseId);
+    }
+
+    @PreAuthorize("hasRole('INSTRUCTOR')")
+    public Assignment gradeAssignment(Long assignmentId, double grade) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new RuntimeException("Assignment not found"));
+        assignment.setGrade(grade);
+        return assignmentRepository.save(assignment);
+}
+
 }

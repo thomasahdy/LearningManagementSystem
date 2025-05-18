@@ -12,8 +12,11 @@ import java.io.IOException;
 @RequestMapping("/api/analytics")
 public class PerformanceAnalyticsReportController {
 
-    @Autowired
-    private PerformanceAnalyticsReportService performanceAnalyticsReportService;
+
+    private final PerformanceAnalyticsReportService performanceAnalyticsReportService;
+    public PerformanceAnalyticsReportController(PerformanceAnalyticsReportService performanceAnalyticsReportService){
+        this.performanceAnalyticsReportService = performanceAnalyticsReportService;
+    }
 
     // Endpoint to generate and download the performance report in Excel format
     @GetMapping("/performance-report/{courseId}")

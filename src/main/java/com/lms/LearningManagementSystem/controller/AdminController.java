@@ -17,10 +17,14 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class AdminController {
 
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private CourseService courseService;
+    private final UserService userService;
+    private final CourseService courseService;
+
+    // Constructor injection
+    public AdminController(UserService userService, CourseService courseService) {
+        this.userService = userService;
+        this.courseService = courseService;
+    }
 
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {
@@ -36,7 +40,7 @@ public class AdminController {
 
     //create user
     @PostMapping("/users/create")
-    public ResponseEntity<?> createUser(@RequestBody User user) {
+    public ResponseEntity<String> createUser(@RequestBody User user) {
         try {
             userService.createUser(user);
             return ResponseEntity.ok("User created successfully!");

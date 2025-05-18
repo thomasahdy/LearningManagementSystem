@@ -2,6 +2,7 @@ package com.lms.LearningManagementSystem.service;
 
 import com.lms.LearningManagementSystem.model.Resource;
 import com.lms.LearningManagementSystem.repository.ResourceRepository;
+import com.lms.LearningManagementSystem.repository.ResourceRepositoryImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +19,7 @@ public class ResourceService {
 
     public ResourceService(ResourceRepository resourceRepository) {
         this.resourceRepository = resourceRepository;
+        resourceRepository=new ResourceRepositoryImpl();
     }
 
     public Resource saveResource(Resource file) throws IOException {

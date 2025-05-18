@@ -13,6 +13,10 @@ public class Attendance {
     @ManyToOne
     @JoinColumn(name = "student_id", nullable = false)
     private User student;
+    
+    @ManyToOne
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
 
     private LocalDate date;
 
@@ -32,6 +36,14 @@ public class Attendance {
 
     public void setStudent(User student) {
         this.student = student;
+    }
+    
+    public Course getCourse() {
+        return course;
+    }
+
+    public void setCourse(Course course) {
+        this.course = course;
     }
 
     public LocalDate getDate() {

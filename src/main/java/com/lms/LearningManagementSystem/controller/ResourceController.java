@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/resources")
+@RequestMapping("/api/resources")
 public class ResourceController {
 
     private final ResourceService resourceService;

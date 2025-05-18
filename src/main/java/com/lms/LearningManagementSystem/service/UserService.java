@@ -14,11 +14,16 @@ import java.util.Optional;
 @Service
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private static final String USER_NOT_FOUND_MESSAGE = "User not found";
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    // Constructor-based dependency injection
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     // Admin only can get all users
     @PreAuthorize("hasRole('ADMIN')")
@@ -40,7 +45,7 @@ public class UserService {
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
-        
+
         // Encode password before saving
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
@@ -50,7 +55,7 @@ public class UserService {
     @PreAuthorize("hasRole('ADMIN')")
     public User updateUserRole(Long id, String role) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND_MESSAGE));
         user.setRole(Role.valueOf(role.toUpperCase()));
         return userRepository.save(user);
     }
@@ -59,16 +64,16 @@ public class UserService {
     @PreAuthorize("#username == authentication.principal.username or hasRole('ADMIN')")
     public void updateUser(String username, User user) {
         User existingUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        
+                .orElseThrow(() -> new IllegalArgumentException(USER_NOT_FOUND_MESSAGE));
+
         // Don't allow role changes through this method
         user.setRole(existingUser.getRole());
-        
+
         // Only encode password if it's changed
         if (!user.getPassword().equals(existingUser.getPassword())) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
-        
+
         userRepository.save(user);
     }
 

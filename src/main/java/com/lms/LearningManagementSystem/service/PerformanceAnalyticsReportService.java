@@ -14,8 +14,11 @@ import java.util.List;
 @Service
 public class PerformanceAnalyticsReportService {
 
-    @Autowired
-    private PerformanceRepository performanceRepository;
+
+    private  final PerformanceRepository performanceRepository;
+    public PerformanceAnalyticsReportService(PerformanceRepository performanceRepository){
+        this.performanceRepository = performanceRepository;
+    }
 
     // Method to generate an Excel report for student performance
     public byte[] generatePerformanceReport(Long courseId) throws IOException {
